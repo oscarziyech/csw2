@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coursework</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css"
+    />
+    <!-- Font Awesome Scripts -->
+
+    <link rel="stylesheet" href="./first.css" />
+    <!-- Javascript lessons object -->
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1 v-text="sitename"></h1>
+      </header>
+
+      <div v-if="showlesson">
+        <div>
+          <button
+            v-on:click="showCheckout"
+            v-if="cartItemCount > 0"
+            class="button"
+          >
+            {{ cartItemCount }}
+            <span class="fas fa-cart-plus">Checkout</span>
+          </button>
+        </div>
+        <div>
+          <div>
+            <h4>Sort by:</h4>
+
+            <label>
+              <input
+                v-model="sort"
+                type="radio"
+                name="Sort"
+                value="price"
+                v-on:click="sortedLessons('price', ord)"
+              />
+              Price
+            </label>
+            <label>
+              <input v-model="sort" type="radio" name="Sort" value="subj" />
+              Subject
+            </label>
+            <label>
+              <input v-model="sort" type="radio" name="Sort" value="loc" />
+              Location
+            </label>
+            <label>
+              <input v-model="sort" type="radio" name="Sort" value="avail" />
+              Availability
+            </label>
+
+            <h4>Order</h4>
+
+            <label>
+              <input v-model="ord" type="radio" name="Order" value="asc" />
+              Ascending </label
+            ><br />
+            <label>
+              <input type="radio" name="Order" value="des" v-model="ord" />
+              Descending </label
+            ><br />
+          </div>
+        </div>
+      </div>
+
+      <br />
+      <!-- Entry point of our application -->
+
+      <div v-if="showlesson">
+        <div v-for="lesson in sortedLessons(sort, ord)">
+          <div class="row">
+            <div class="column">
+              <div class="lesson">
+                <p v-text="lesson.subject"></p>
+                <p>Location: {{ lesson.location }}</p>
+                <img v-bind:src="lesson.image" />
+                <p>Price: £{{ lesson.price }}</p>
+                <p>Spaces: {{ lesson.space - cartCount(lesson)}}</p>
+                <button
+                  v-on:click="addToCart(lesson)"
+                  v-if="canAddToCart(lesson)"
+                >
+                  <!-- v-if="canAddToCart(lessons)" -->
+                  Add to cart
+                </button>
+                <button disabled="disabled" v-else>Add to cart</button>
+                <span v-if="lesson.space - cartCount(lesson)"> </span>
+                <span v-else-if="lesson.space - cartCount(lesson) < 10"> </span>
+                <span v-else>Buy now!</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else>
+        <h3>Shopping Cart Page</h3>
+        <div>
+          <button v-on:click="showCheckout"><span></span>Go back</button>
+        </div>
+        <div v-for="lesson in cart">
+          <h4 v-text="lesson.subject"></h4>
+          <figure>
+            <img v-bind:src="lesson.image" />
+          </figure>
+          <p>Price: £{{lesson.price}}</p>
+          <button v-on:click="removeItem(lesson)">Remove Item</button><br />
+        </div>
+
+        <form @submit.prevent="submitForm">
+          <div class="row m-5">
+            <div class="form-group col-4">
+              <strong id="successfulCheckout"></strong>
+              <input
+                v-model="order.name"
+                class="form-control border-top-0 border-left-0 border-right-0"
+                placeholder=" Name"
+                type="text"
+                v-on:keypress="isLetter($event)"
+              />
+            </div>
+            <div class="form-group col-4">
+              <input
+                v-model.number="order.number"
+                class="form-control border-top-0 border-left-0 border-right-0"
+                placeholder="Phone"
+                type="number"
+                v-on:keypress="isLetterOrNumber($event)"
+              />
+            </div>
+            <div class="form-group col-4">
+              <div class="form-group col-4">
+                <button
+                  class="btn btn-primary"
+                  v-if="submitForm"
+                  v-on:click="submitForm"
+                >
+                  Checkout
+                </button>
+
+                <button class="btn btn-secondary" disabled v-else>
+                  Checkout
+                </button>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <br />
+    </div>
+    <script>
+      const instance = new Vue({
+        el: "#app",
+
+        data: {
+          order: {
+            name: "",
+            number: "",
+          },
+          // data: () => ({
+          //   name: "",
+          //   firstName: "",
+          // }),
+          sitename: "Individual Task",
+          showlesson: false,
+          lessons: [],
+          cart: [],
+          sort: "subj",
+          ord: "asc",
+        },
+
+        created: function () {
+          //created function fetches the lessons
+
+          //fetching the lessons from server
+          const app = this;
+          console.log(this);
+          fetch("https://coursework-two.herokuapp.com/collection/lessons").then(
+            function (response) {
+              console.log(this);
+              response.json().then(function (json) {
+                app.showlesson = true;
+                app.lessons = json;
+              });
+            }
+          );
+        },
+        methods: {
+          /*addToCart: function () {
+                  if (this.lesson.numberOfSpaces > 0) {
+                    this.lesson.numberOfSpaces -= 1;
+                  }
+                },*/
+          removeItem(lesson) {
+            this.cart.splice(this.cart.indexOf(lesson));
+          },
+          showCheckout() {
+            this.showlesson = this.showlesson ? false : true;
+          },
+          addToCart(lesson) {
+            this.cart.push(lesson);
+          },
+          canAddToCart(lesson) {
+            return lesson.space > this.cartCount(lesson);
+          },
+          // submitForm() {
+          //   alert("Order submitted!");
+          // },
+          isLetter(e) {
+            let char = String.fromCharCode(e.keyCode); // Get the character
+            if (/^[A-Za-z]+$/.test(char)) return true;
+            // Match with regex
+            else e.preventDefault(); // If not match, don't add to input text
+          },
+          isLetterOrNumber(e) {
+            let char = String.fromCharCode(e.keyCode);
+            if (/^[A-Za-z0-9]+$/.test(char)) return true;
+            else e.preventDefault();
+          },
+          sortedLessons(sort, order) {
+            let LessonsArray = this.lessons.slice(0);
+            switch (sort) {
+              // sort by price
+              case "price":
+                if (order == "asc") {
+                  function comparePrice(a, b) {
+                    if (a.price > b.price) return 1;
+                    if (a.price < b.price) return -1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(comparePrice);
+                } else {
+                  function comparePrice(a, b) {
+                    if (a.price > b.price) return -1;
+                    if (a.price < b.price) return 1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(comparePrice);
+                }
+                break;
+
+              // sort by location
+              case "loc":
+                if (order == "asc") {
+                  function compareLocation(a, b) {
+                    if (a.location > b.location) return 1;
+                    if (a.location < b.location) return -1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareLocation);
+                } else {
+                  function compareLocation(a, b) {
+                    if (a.location > b.location) return -1;
+                    if (a.location < b.location) return 1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareLocation);
+                }
+                break;
+
+              // sort by availability
+              case "avail":
+                if (order == "asc") {
+                  function compareSpace(a, b) {
+                    if (a.space > b.space) return 1;
+                    if (a.space < b.space) return -1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareSpace);
+                } else {
+                  function compareSpace(a, b) {
+                    if (a.space > b.space) return -1;
+                    if (a.space < b.space) return 1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareSpace);
+                }
+                break;
+
+              // by default, compare subject
+              default:
+                if (order == "asc") {
+                  function compareSubject(a, b) {
+                    if (a.subject > b.subject) return 1;
+                    if (a.subject < b.subject) return -1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareSubject);
+                } else {
+                  function compareSubject(a, b) {
+                    if (a.subject > b.subject) return -1;
+                    if (a.subject < b.subject) return 1;
+                    return 0;
+                  }
+                  return LessonsArray.sort(compareSubject);
+                }
+                break;
+            }
+          },
+
+          cartCount(id) {
+            let count = 0;
+            for (let i = 0; i < this.cart.length; i++) {
+              if (this.cart[i] === id) {
+                count++;
+              }
+            }
+            return count;
+          },
+          submitForm() {
+            if (this.order.name && this.order.number) {
+              alert("Form has been submitted");
+              // document.getElementById("successfulCheckout").innerHTML =
+              //   "Thank you for purchasing! <br>";
+
+              //function to add the order to the database
+              addOrder(this.order.name, this.order.phone, this.cart);
+
+              //function to update the spaces of the lessons
+              updateorder(this.cart);
+
+              //clearing the fields
+              this.order.name = "";
+              this.order.phone = "";
+              this.cart.splice(0, this.cart.length);
+            } else if (this.cart.length == 0) {
+              alert("No products in cart!");
+            } else {
+              alert("Please enter the correct values.");
+            }
+
+            //Add Order function. The following function addes the order to the database
+            function addOrder(name, phone, cartOrder) {
+              var final_cart = [];
+              var n = 0;
+
+              //making an array with unique orders incase same lessons are ordered
+              for (i = 0; i < cartOrder.length; i++) {
+                const uniqueOrder = { id: cartOrder[i]._id, spaces: 1 };
+                if (final_cart.length == 0) {
+                  final_cart.push(uniqueOrder);
+                } else {
+                  for (a = 0; a < final_cart.length; a++) {
+                    if (final_cart[a].id == cartOrder[i]._id) {
+                      final_cart[a].spaces = final_cart[a].spaces + 1;
+                      break;
+                    } else {
+                      final_cart.push(uniqueOrder);
+                      break;
+                    }
+                  }
+                }
+              }
+
+              //final order object that is added into MongoDB
+              const newOrder = { phone: phone, name: name, order: final_cart };
+
+              //POST request to add the order to the database.
+              fetch(
+                "https://coursework-two.herokuapp.com/collection/orders",
+                {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Credentials": true,
+                  },
+                  body: JSON.stringify(newOrder),
+                }
+              )
+                .then((response) => response.text())
+                .then((responseJSON) => {
+                  updateorder(cartOrder);
+                });
+            }
+
+            //The following function updates the spaces of the lessons when an order is placed
+            function updateorder(cart) {
+              var final_cart = [];
+              var n = 0;
+
+              for (i = 0; i < cart.length; i++) {
+                const uniqueOrder = { id: cart[i]._id, spaces: cart[i].spaces };
+
+                if (final_cart.length == 0) {
+                  final_cart.push(uniqueOrder);
+                } else {
+                  for (a = 0; a < final_cart.length; a++) {
+                    if (final_cart[a].id == cart[i]._id) {
+                      final_cart[a].spaces = cart[i].spaces;
+                      break;
+                    } else {
+                      final_cart.push(uniqueOrder);
+                      break;
+                    }
+                  }
+                }
+              }
+
+              //PUT request to update the lesson spaces
+              for (i = 0; i < final_cart.length; i++) {
+                fetch(
+                  "https://cors-anywhere.herokuapp.com/coursework-two.herokuapp.com/collection/lessons/" +
+                    final_cart[i].id,
+                  {
+                    method: "PUT",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({ spaces: final_cart[i].spaces }),
+                  }
+                )
+                  .then((response) => response.text())
+                  .then((responseJSON) => {
+                    console.log(responseJSON);
+                  });
+              }
+            }
+          },
+        },
+        computed: {
+          /*canAddToCart() {
+                  return this.lesson.numberOfSpaces > 0;
+                },*/
+          cartItemCount() {
+            return this.cart.length;
+          },
+        },
+      });
+    </script>
+  </body>
+</html>

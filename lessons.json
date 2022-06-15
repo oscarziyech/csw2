@@ -1,0 +1,6 @@
+[
+    {"topic": "math", "price": 100, "location": "Macher","space":"4"},
+    {"topic": "english", "price": 43, "location": "usa","space":"4"},
+    {"topic": "chemistry", "price": 56, "location": "senegal","space":"4"},
+    {"topic": "biology", "price": 898, "location": "Nairobi","space":"4"}
+]
